@@ -5,16 +5,17 @@ from rag_engine import RAGChatbot
 # ADD YOUR GEMINI API KEY HERE
 # ========================================
 API_KEY = st.secrets["GEMINI_API_KEY"]
+
 # ========================================
 
 # Page configuration
 st.set_page_config(
-    page_title="College Chatbot",
+    page_title="College Admission Chatbot",
     page_icon="🎓",
     layout="wide"
 )
 
-# Custom CSS - Bigger heading and cleaner layout
+# Custom CSS - Updated header & removed cursor
 st.markdown("""
 <style>
     .main-header {
@@ -48,19 +49,24 @@ st.markdown("""
         font-size: 0.8rem;
         margin-top: 3rem;
     }
+    /* Hide blinking text cursor */
+    .stTextInput > div > div > input, textarea {
+        caret-color: transparent !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Header - Bigger and cleaner
-st.markdown('<h1 class="main-header">🎓 College Chatbot</h1>', unsafe_allow_html=True)
+# Header
+st.markdown('<h1 class="main-header">🎓 College Admission Chatbot</h1>', unsafe_allow_html=True)
 
-# ========================================
-# INITIALIZE CHATBOT + SESSION
-# ========================================
+# Initialize chatbot (cached so it only loads once)
 @st.cache_resource
 def load_chatbot():
     return RAGChatbot(API_KEY)
 
+# ========================================
+# INITIALIZE SESSION STATE FIRST
+# ========================================
 if "messages" not in st.session_state:
     st.session_state.messages = []
     # Add welcome message
@@ -70,23 +76,43 @@ if "messages" not in st.session_state:
     })
 # ========================================
 
-# ========================================
-# MAIN LAYOUT
-# ========================================
+# Main layout
 col1, col2 = st.columns([3, 1])
 
-# --- LEFT COLUMN: Chat history ---
 with col1:
     st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-
-    # Display chat history
+    
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-
+    
+    if prompt := st.chat_input("Ask me anything about the college..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        
+        with st.chat_message("assistant"):
+            with st.spinner("🤔 Thinking..."):
+                try:
+                    chatbot = load_chatbot()
+                    response = chatbot.chat(prompt)
+                    st.markdown(response)
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": response
+                    })
+                except Exception as e:
+                    error_msg = f"❌ Error: {str(e)}\n\nPlease check your API key is correct."
+                    st.error(error_msg)
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": error_msg
+                    })
+    
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- RIGHT COLUMN: Sidebar / quick buttons ---
+# Sidebar
 with col2:
     st.markdown("""
     <div style="position: fixed; width: 250px; height: 100vh; overflow-y: auto;">
@@ -103,7 +129,6 @@ with col2:
     
     st.markdown('<h4 style="color: #1f77b4; font-size: 1.2rem;">💡 Quick Questions</h4>', unsafe_allow_html=True)
     
-    # Example question buttons
     if st.button("🎯 Admission Requirements", use_container_width=True):
         st.session_state.messages.append({"role": "user", "content": "What are the admission requirements?"})
         st.rerun()
@@ -125,33 +150,7 @@ with col2:
         st.rerun()
     
     st.markdown('<div class="footer" style="position: absolute; bottom: 20px; width: 100%;">AI Chatbot | Capstone Project</div>', unsafe_allow_html=True)
+    
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ========================================
-# CHAT INPUT (outside containers!)
-# ========================================
-if prompt := st.chat_input("Ask me anything about the college..."):
-    # Add user message
-    st.session_state.messages.append({"role": "user", "content": prompt})
-
-    # Display user message
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    # Generate response
-    with st.chat_message("assistant"):
-        with st.spinner("🤔 Thinking..."):
-            try:
-                chatbot = load_chatbot()
-                response = chatbot.chat(prompt)
-                st.markdown(response)
-                st.session_state.messages.append({"role": "assistant", "content": response})
-            except Exception as e:
-                error_msg = f"❌ Error: {str(e)}\n\nPlease check your API key is correct."
-                st.error(error_msg)
-                st.session_state.messages.append({"role": "assistant", "content": error_msg})
-
-# ========================================
-# FOOTER
-# ========================================
-st.markdown('<div class="footer">AI-Powered College Chatbot | Capstone Project</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">AI-Powered College Admission Chatbot | Capstone Project</div>', unsafe_allow_html=True)
