@@ -82,35 +82,39 @@ col1, col2 = st.columns([3, 1])
 with col1:
     st.markdown('<div class="chat-container">', unsafe_allow_html=True)
     
+    # Display chat messages
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
     
-    if prompt := st.chat_input("Ask me anything about the college..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        
-        with st.chat_message("user"):
-            st.markdown(prompt)
-        
-        with st.chat_message("assistant"):
-            with st.spinner("🤔 Thinking..."):
-                try:
-                    chatbot = load_chatbot()
-                    response = chatbot.chat(prompt)
-                    st.markdown(response)
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": response
-                    })
-                except Exception as e:
-                    error_msg = f"❌ Error: {str(e)}\n\nPlease check your API key is correct."
-                    st.error(error_msg)
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": error_msg
-                    })
-    
     st.markdown('</div>', unsafe_allow_html=True)
+
+# Chat input must be OUTSIDE the column layout
+prompt = st.chat_input("Ask me anything about the college...")
+
+if prompt:
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    
+    with st.chat_message("assistant"):
+        with st.spinner("🤔 Thinking..."):
+            try:
+                chatbot = load_chatbot()
+                response = chatbot.chat(prompt)
+                st.markdown(response)
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": response
+                })
+            except Exception as e:
+                error_msg = f"❌ Error: {str(e)}\n\nPlease check your API key is correct."
+                st.error(error_msg)
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": error_msg
+                })
 
 # Sidebar
 with col2:
